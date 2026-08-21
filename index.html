@@ -224,21 +224,19 @@
       text-align: center;
     }
     .lang-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-    .model-option {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .model-option.active { border-color: var(--primary); background: #eff6ff; }
-    .model-option input[type=radio] { display: none; }
-    .model-name { font-size: 14px; font-weight: 600; }
-    .model-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .about-info { font-size: 13px; color: var(--muted); line-height: 2; }
+    .error-box {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #991b1b;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -257,9 +255,9 @@
 <!-- OCR Tab -->
 <div id="tab-ocr" class="page active">
   <div id="no-key-banner" class="no-key-banner">
-    ⚠️ 请先在「设置」中填入 API Key
+    ⚠️ 请先在「设置」中填入 Gemini API Key
   </div>
-  <div id="error-box" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px;margin-bottom:12px;font-size:13px;color:#991b1b;line-height:1.7;white-space:pre-wrap"></div>
+  <div id="error-box" class="error-box"></div>
   <div class="card">
     <div class="card-title">上传订单截图</div>
     <div class="upload-area" onclick="triggerUpload('camera')">
@@ -336,99 +334,21 @@
 <!-- Settings Tab -->
 <div id="tab-settings" class="page">
   <div class="card">
-    <div class="card-title">选择 AI 模型</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-      <label class="model-option" onclick="selectModel('gemini')">
-        <input type="radio" name="model" value="gemini" id="m-gemini">
-        <div class="model-info">
-          <div class="model-name">Google Gemini ⭐ 免费</div>
-          <div class="model-desc">每天1500次 · 完全免费 · 需要VPN</div>
-        </div>
-      </label>
-      <label class="model-option" onclick="selectModel('siliconflow')">
-        <input type="radio" name="model" value="siliconflow" id="m-siliconflow">
-        <div class="model-info">
-          <div class="model-name">自有代理</div>
-          <div class="model-desc">国内直连 · 无需 VPN · 100+ 模型</div>
-        </div>
-      </label>
-      <label class="model-option" onclick="selectModel('claude')">
-        <input type="radio" name="model" value="claude" id="m-claude">
-        <div class="model-info">
-          <div class="model-name">Claude (Anthropic)</div>
-          <div class="model-desc">识别能力最强 · 需要 VPN</div>
-        </div>
-      </label>
-      <label class="model-option" onclick="selectModel('qwen')">
-        <input type="radio" name="model" value="qwen" id="m-qwen">
-        <div class="model-info">
-          <div class="model-name">通义千问 Qwen-VL</div>
-          <div class="model-desc">国内直连 · 无需 VPN · 阿里云</div>
-        </div>
-      </label>
-      <label class="model-option" onclick="selectModel('openai')">
-        <input type="radio" name="model" value="openai" id="m-openai">
-        <div class="model-info">
-          <div class="model-name">OpenAI GPT-4o</div>
-          <div class="model-desc">需要 VPN · openai.com</div>
-        </div>
-      </label>
+    <div class="card-title">Gemini API Key</div>
+    <div class="input-group">
+      <input class="input-field" id="api-key-input" type="password" placeholder="AIza...">
     </div>
-
-    <div id="key-gemini" class="key-section" style="display:none">
-      <div class="input-group">
-        <label class="input-label">Gemini API Key</label>
-        <input class="input-field" id="key-input-gemini" type="password" placeholder="AIza...">
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
-        在 <span style="color:var(--primary)">aistudio.google.com</span> 免费获取 · 每天1500次
-      </p>
-    </div>
-    <div id="key-siliconflow" class="key-section" style="display:none">
-      <div class="input-group">
-        <label class="input-label">API Key</label>
-        <input class="input-field" id="key-input-siliconflow" type="password" placeholder="user-key-...">
-      </div>
-      <div class="input-group">
-        <label class="input-label">代理地址（Base URL）</label>
-        <input class="input-field" id="sf-base-url" type="text" placeholder="https://你的代理地址">
-      </div>
-      <div class="input-group">
-        <label class="input-label">模型名称</label>
-        <input class="input-field" id="sf-model-input" type="text" placeholder="例：Qwen/Qwen2-VL-72B-Instruct">
-      </div>
-    </div>
-    <div id="key-claude" class="key-section">
-      <div class="input-group">
-        <label class="input-label">Anthropic API Key</label>
-        <input class="input-field" id="key-input-claude" type="password" placeholder="sk-ant-api03-...">
-      </div>
-    </div>
-    <div id="key-qwen" class="key-section" style="display:none">
-      <div class="input-group">
-        <label class="input-label">阿里云 DashScope API Key</label>
-        <input class="input-field" id="key-input-qwen" type="password" placeholder="sk-...">
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
-        在 <span style="color:var(--primary)">dashscope.aliyuncs.com</span> 申请，国内无需 VPN
-      </p>
-    </div>
-    <div id="key-openai" class="key-section" style="display:none">
-      <div class="input-group">
-        <label class="input-label">OpenAI API Key</label>
-        <input class="input-field" id="key-input-openai" type="password" placeholder="sk-...">
-      </div>
-    </div>
-
-    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">密钥只保存在本机，不经过任何服务器</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      在 <span style="color:var(--primary)">aistudio.google.com</span> 免费获取 · 每天1500次 · 密钥只保存在本机
+    </p>
     <button class="save-btn" onclick="saveKey()">💾 保存</button>
   </div>
   <div class="card">
     <div class="card-title">关于</div>
     <div class="about-info">
-      <div>🏨 酒店订单助手 v1.2</div>
+      <div>🏨 酒店订单助手 v1.3</div>
       <div>📱 无服务器 · 纯前端运行</div>
-      <div>🤖 支持 Claude / 通义千问 / OpenAI</div>
+      <div>🤖 Google Gemini 驱动 · 每天免费1500次</div>
       <div style="margin-top:8px;color:#9ca3af">即将支持：EBK价格对比 · 汇率换算</div>
     </div>
   </div>
@@ -468,11 +388,8 @@ function switchTab(name) {
 
 function triggerUpload(mode) {
   const input = document.getElementById('file-input');
-  if (mode === 'camera') {
-    input.setAttribute('capture', 'environment');
-  } else {
-    input.removeAttribute('capture');
-  }
+  if (mode === 'camera') input.setAttribute('capture', 'environment');
+  else input.removeAttribute('capture');
   input.value = '';
   input.click();
 }
@@ -480,15 +397,12 @@ function triggerUpload(mode) {
 function handleFile(input) {
   if (!input.files || !input.files[0]) return;
   currentFile = input.files[0];
-  if (currentFile.size > 10 * 1024 * 1024) {
-    showToast('图片超过10MB，请压缩后重试');
-    return;
-  }
-  const url = URL.createObjectURL(currentFile);
-  document.getElementById('preview-img').src = url;
+  if (currentFile.size > 10 * 1024 * 1024) { showToast('图片超过10MB，请压缩后重试'); return; }
+  document.getElementById('preview-img').src = URL.createObjectURL(currentFile);
   document.getElementById('preview-container').style.display = 'block';
   document.getElementById('ocr-btn').disabled = false;
   document.getElementById('result-section').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
 }
 
 function fileToBase64(file) {
@@ -501,36 +415,22 @@ function fileToBase64(file) {
 }
 
 async function doOCR() {
-  const apiKey = getActiveKey();
-  if (!apiKey) {
-    showToast('请先在设置中填入 API Key');
-    switchTab('settings');
-    return;
-  }
+  const apiKey = localStorage.getItem('apiKey') || '';
+  if (!apiKey) { showToast('请先在设置中填入 API Key'); switchTab('settings'); return; }
   if (!currentFile) return;
 
   document.getElementById('loading').style.display = 'block';
   document.getElementById('result-section').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
   document.getElementById('ocr-btn').disabled = true;
 
   try {
     const base64 = await fileToBase64(currentFile);
     const mediaType = currentFile.type || 'image/jpeg';
-    const model = localStorage.getItem('model') || 'claude';
-
-    let text = '';
-    if (model === 'claude') {
-      text = await callClaude(apiKey, base64, mediaType);
-    } else if (model === 'gemini') {
-      text = await callGemini(apiKey, base64, mediaType);
-    } else {
-      text = await callOpenAICompat(apiKey, base64, mediaType, model);
-    }
+    const text = await callGemini(apiKey, base64, mediaType);
 
     let clean = text.trim();
-    if (clean.startsWith('```')) {
-      clean = clean.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '');
-    }
+    if (clean.startsWith('```')) clean = clean.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '');
 
     currentData = JSON.parse(clean);
     renderResult(currentData);
@@ -543,6 +443,37 @@ async function doOCR() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('ocr-btn').disabled = false;
   }
+}
+
+async function callGemini(apiKey, base64, mediaType) {
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { inline_data: { mime_type: mediaType, data: base64 } },
+          { text: OCR_PROMPT }
+        ]}]
+      })
+    });
+  } catch {
+    showError('网络连接失败，无法连接到 Google\n请检查 VPN 是否已开启');
+    throw new Error('__handled__');
+  }
+  if (res.status === 400 || res.status === 403) {
+    const err = await res.json().catch(() => ({}));
+    showError('Gemini 错误：' + (err.error?.message || 'API Key 无效，请重新检查'));
+    throw new Error('__handled__');
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    showError('Gemini 错误 ' + res.status + '：' + (err.error?.message || '未知错误'));
+    throw new Error('__handled__');
+  }
+  const json = await res.json();
+  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 const FIELD_LABELS = {
@@ -564,7 +495,6 @@ function renderResult(d) {
     html += `<div class="field-row"><span class="field-label">${label}</span><span class="${cls}">${display}</span></div>`;
   }
   document.getElementById('result-fields').innerHTML = html;
-
   if (d.guest_name) document.getElementById('m-guest').value = d.guest_name;
   if (d.checkin_date) document.getElementById('m-checkin').value = d.checkin_date;
   if (d.checkout_date) document.getElementById('m-checkout').value = d.checkout_date;
@@ -577,8 +507,7 @@ function setLang(lang) {
   document.getElementById('btn-en').classList.toggle('active', lang === 'en');
   document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
   if (!currentData) return;
-  document.getElementById('email-content').textContent =
-    lang === 'en' ? buildEn(currentData) : buildZh(currentData);
+  document.getElementById('email-content').textContent = lang === 'en' ? buildEn(currentData) : buildZh(currentData);
 }
 
 function buildEn(d) {
@@ -590,20 +519,8 @@ function buildEn(d) {
   const id = d.booking_id ? `\nBooking ID: ${d.booking_id}` : '';
   const p = d.total_price ? `\nTotal: ${d.total_price} ${d.currency || ''}` : '';
   const sr = (d.special_requests && d.special_requests !== 'null')
-    ? `\n\nNote: Regarding your special request "${d.special_requests}", we will do our best to arrange it.`
-    : '';
-  return `Dear ${g},
-
-Thank you for choosing us! We are pleased to confirm your reservation.
-
-Check-in:  ${ci}
-Check-out: ${co}${n}
-Room: ${r}${id}${p}${sr}
-
-We look forward to welcoming you. Please feel free to contact us if you have any questions.
-
-Best regards,
-Hotel Team`;
+    ? `\n\nNote: Regarding your special request "${d.special_requests}", we will do our best to arrange it.` : '';
+  return `Dear ${g},\n\nThank you for choosing us! We are pleased to confirm your reservation.\n\nCheck-in:  ${ci}\nCheck-out: ${co}${n}\nRoom: ${r}${id}${p}${sr}\n\nWe look forward to welcoming you. Please feel free to contact us if you have any questions.\n\nBest regards,\nHotel Team`;
 }
 
 function buildZh(d) {
@@ -615,20 +532,8 @@ function buildZh(d) {
   const id = d.booking_id ? `\n订单号：${d.booking_id}` : '';
   const p = d.total_price ? `\n总价：${d.total_price} ${d.currency || ''}` : '';
   const sr = (d.special_requests && d.special_requests !== 'null')
-    ? `\n\n关于您的特殊要求"${d.special_requests}"，我们将尽力为您安排。`
-    : '';
-  return `尊敬的 ${g}，
-
-感谢您选择我们酒店！您的预订已确认。
-
-入住日期：${ci}
-退房日期：${co}${n}
-房型：${r}${id}${p}${sr}
-
-期待您的光临，如有任何疑问请随时联系我们。
-
-此致
-酒店前台`;
+    ? `\n\n关于您的特殊要求"${d.special_requests}"，我们将尽力为您安排。` : '';
+  return `尊敬的 ${g}，\n\n感谢您选择我们酒店！您的预订已确认。\n\n入住日期：${ci}\n退房日期：${co}${n}\n房型：${r}${id}${p}${sr}\n\n期待您的光临，如有任何疑问请随时联系我们。\n\n此致\n酒店前台`;
 }
 
 function genManual(lang) {
@@ -647,9 +552,7 @@ function copyText(id) {
   const text = document.getElementById(id).textContent;
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text).then(() => showToast('已复制！')).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
+  } else { fallbackCopy(text); }
 }
 
 function fallbackCopy(text) {
@@ -658,138 +561,16 @@ function fallbackCopy(text) {
   ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
   document.body.appendChild(ta);
   ta.select();
-  try { document.execCommand('copy'); showToast('已复制！'); }
-  catch { showToast('请长按手动复制'); }
+  try { document.execCommand('copy'); showToast('已复制！'); } catch { showToast('请长按手动复制'); }
   document.body.removeChild(ta);
 }
 
 function saveKey() {
-  const model = localStorage.getItem('model') || 'claude';
-  const v = document.getElementById('key-input-' + model).value.trim();
+  const v = document.getElementById('api-key-input').value.trim();
   if (!v) { showToast('请输入 API Key'); return; }
-  localStorage.setItem('apiKey_' + model, v);
-  if (model === 'siliconflow') {
-    const url = document.getElementById('sf-base-url').value.trim();
-    const m = document.getElementById('sf-model-input').value.trim();
-    if (!url) { showToast('请填入代理地址'); return; }
-    if (!m) { showToast('请填入模型名称'); return; }
-    localStorage.setItem('sf_base_url', url);
-    localStorage.setItem('sf_model', m);
-  }
+  localStorage.setItem('apiKey', v);
   document.getElementById('no-key-banner').style.display = 'none';
   showToast('已保存');
-}
-
-function selectModel(name) {
-  localStorage.setItem('model', name);
-  document.querySelectorAll('.model-option').forEach(el => el.classList.remove('active'));
-  document.getElementById('m-' + name).closest('.model-option').classList.add('active');
-  document.querySelectorAll('.key-section').forEach(el => el.style.display = 'none');
-  document.getElementById('key-' + name).style.display = 'block';
-}
-
-function getActiveKey() {
-  const model = localStorage.getItem('model') || 'claude';
-  return localStorage.getItem('apiKey_' + model) || '';
-}
-
-async function callGemini(apiKey, base64, mediaType) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
-  let res;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [
-          { inline_data: { mime_type: mediaType, data: base64 } },
-          { text: OCR_PROMPT }
-        ]}]
-      })
-    });
-  } catch {
-    showError('网络连接失败：无法连接到 Google\n请检查 VPN 是否已开启');
-    throw new Error('__handled__');
-  }
-  if (res.status === 400 || res.status === 403) {
-    showError('Gemini API Key 无效，请检查密钥是否正确');
-    throw new Error('__handled__');
-  }
-  await checkHttpError(res, 'Gemini');
-  const json = await res.json();
-  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-}
-
-async function callClaude(apiKey, base64, mediaType) {
-  let res;
-  try {
-    res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-8',
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-          { type: 'text', text: OCR_PROMPT }
-        ]}]
-      })
-    });
-  } catch {
-    showError('网络连接失败：无法连接到 Anthropic\n请检查 VPN 是否已开启');
-    throw new Error('__handled__');
-  }
-  await checkHttpError(res, 'Anthropic');
-  const json = await res.json();
-  for (const b of json.content) { if (b.type === 'text') return b.text; }
-  return '';
-}
-
-async function callOpenAICompat(apiKey, base64, mediaType, model) {
-  const configs = {
-    siliconflow: { url: (localStorage.getItem('sf_base_url') || '').replace(/\/$/, '') + '/v1/chat/completions', model: localStorage.getItem('sf_model') || '' },
-    qwen:        { url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', model: 'qwen-vl-max' },
-    openai:      { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' }
-  };
-  const cfg = configs[model];
-  let res;
-  try {
-    res = await fetch(cfg.url, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: cfg.model,
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: [
-          { type: 'image_url', image_url: { url: 'data:' + mediaType + ';base64,' + base64 } },
-          { type: 'text', text: OCR_PROMPT }
-        ]}]
-      })
-    });
-  } catch {
-    const names = { siliconflow: '硅基流动', qwen: '通义千问', openai: 'OpenAI' };
-    const name = names[model] || model;
-    showError('网络连接失败：无法连接到 ' + name + '\n' + (model === 'openai' ? '请检查 VPN 是否已开启' : '请检查网络连接'));
-    throw new Error('__handled__');
-  }
-  await checkHttpError(res, model === 'qwen' ? '通义千问' : 'OpenAI');
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content || '';
-}
-
-async function checkHttpError(res, name) {
-  if (res.ok) return;
-  const err = await res.json().catch(() => ({}));
-  const msg = err.error?.message || err.message || '未知错误';
-  if (res.status === 401) showError(name + ' API Key 无效或已过期\n请到设置页面重新填入正确的密钥');
-  else if (res.status === 429) showError('请求过于频繁，请稍等几秒后重试');
-  else showError(name + ' 错误 ' + res.status + '：' + msg);
-  throw new Error('__handled__');
 }
 
 function showError(msg) {
@@ -811,17 +592,9 @@ function showToast(msg) {
 }
 
 window.addEventListener('load', () => {
-  const model = localStorage.getItem('model') || 'claude';
-  selectModel(model);
-  ['claude', 'qwen', 'openai', 'siliconflow', 'gemini'].forEach(m => {
-    const k = localStorage.getItem('apiKey_' + m);
-    if (k) document.getElementById('key-input-' + m).value = k;
-  });
-  const sfUrl = localStorage.getItem('sf_base_url');
-  const sfModel = localStorage.getItem('sf_model');
-  if (sfUrl) document.getElementById('sf-base-url').value = sfUrl;
-  if (sfModel) document.getElementById('sf-model-input').value = sfModel;
-  if (!getActiveKey()) document.getElementById('no-key-banner').style.display = 'block';
+  const key = localStorage.getItem('apiKey');
+  if (key) document.getElementById('api-key-input').value = key;
+  else document.getElementById('no-key-banner').style.display = 'block';
 });
 </script>
 </body>
