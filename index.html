@@ -341,7 +341,7 @@
       <label class="model-option" onclick="selectModel('siliconflow')">
         <input type="radio" name="model" value="siliconflow" id="m-siliconflow">
         <div class="model-info">
-          <div class="model-name">硅基流动 SiliconFlow ⭐</div>
+          <div class="model-name">自有代理 ⭐</div>
           <div class="model-desc">国内直连 · 无需 VPN · 100+ 模型</div>
         </div>
       </label>
@@ -370,12 +370,17 @@
 
     <div id="key-siliconflow" class="key-section" style="display:none">
       <div class="input-group">
-        <label class="input-label">硅基流动 API Key</label>
+        <label class="input-label">API Key</label>
         <input class="input-field" id="key-input-siliconflow" type="password" placeholder="user-key-...">
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
-        完整粘贴，包含 <span style="color:var(--primary)">user-key-</span> 前缀
-      </p>
+      <div class="input-group">
+        <label class="input-label">代理地址（Base URL）</label>
+        <input class="input-field" id="sf-base-url" type="text" placeholder="https://你的代理地址">
+      </div>
+      <div class="input-group">
+        <label class="input-label">模型名称</label>
+        <input class="input-field" id="sf-model-input" type="text" placeholder="例：Qwen/Qwen2-VL-72B-Instruct">
+      </div>
     </div>
     <div id="key-claude" class="key-section">
       <div class="input-group">
@@ -645,6 +650,14 @@ function saveKey() {
   const v = document.getElementById('key-input-' + model).value.trim();
   if (!v) { showToast('请输入 API Key'); return; }
   localStorage.setItem('apiKey_' + model, v);
+  if (model === 'siliconflow') {
+    const url = document.getElementById('sf-base-url').value.trim();
+    const m = document.getElementById('sf-model-input').value.trim();
+    if (!url) { showToast('请填入代理地址'); return; }
+    if (!m) { showToast('请填入模型名称'); return; }
+    localStorage.setItem('sf_base_url', url);
+    localStorage.setItem('sf_model', m);
+  }
   document.getElementById('no-key-banner').style.display = 'none';
   showToast('已保存');
 }
@@ -694,7 +707,7 @@ async function callClaude(apiKey, base64, mediaType) {
 
 async function callOpenAICompat(apiKey, base64, mediaType, model) {
   const configs = {
-    siliconflow: { url: 'https://api.siliconflow.cn/v1/chat/completions', model: 'Qwen/Qwen2-VL-72B-Instruct' },
+    siliconflow: { url: (localStorage.getItem('sf_base_url') || '').replace(/\/$/, '') + '/v1/chat/completions', model: localStorage.getItem('sf_model') || '' },
     qwen:        { url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', model: 'qwen-vl-max' },
     openai:      { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' }
   };
@@ -759,6 +772,10 @@ window.addEventListener('load', () => {
     const k = localStorage.getItem('apiKey_' + m);
     if (k) document.getElementById('key-input-' + m).value = k;
   });
+  const sfUrl = localStorage.getItem('sf_base_url');
+  const sfModel = localStorage.getItem('sf_model');
+  if (sfUrl) document.getElementById('sf-base-url').value = sfUrl;
+  if (sfModel) document.getElementById('sf-model-input').value = sfModel;
   if (!getActiveKey()) document.getElementById('no-key-banner').style.display = 'block';
 });
 </script>
