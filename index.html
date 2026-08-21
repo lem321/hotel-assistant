@@ -455,7 +455,7 @@ async function callSiliconFlow(apiKey, base64, mediaType) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'Qwen/Qwen2-VL-72B-Instruct',
+        model: 'Qwen/Qwen2.5-VL-7B-Instruct',
         max_tokens: 2048,
         messages: [{ role: 'user', content: [
           { type: 'image_url', image_url: { url: 'data:' + mediaType + ';base64,' + base64 } },
