@@ -338,10 +338,17 @@
   <div class="card">
     <div class="card-title">选择 AI 模型</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <label class="model-option" onclick="selectModel('gemini')">
+        <input type="radio" name="model" value="gemini" id="m-gemini">
+        <div class="model-info">
+          <div class="model-name">Google Gemini ⭐ 免费</div>
+          <div class="model-desc">每天1500次 · 完全免费 · 需要VPN</div>
+        </div>
+      </label>
       <label class="model-option" onclick="selectModel('siliconflow')">
         <input type="radio" name="model" value="siliconflow" id="m-siliconflow">
         <div class="model-info">
-          <div class="model-name">自有代理 ⭐</div>
+          <div class="model-name">自有代理</div>
           <div class="model-desc">国内直连 · 无需 VPN · 100+ 模型</div>
         </div>
       </label>
@@ -368,6 +375,15 @@
       </label>
     </div>
 
+    <div id="key-gemini" class="key-section" style="display:none">
+      <div class="input-group">
+        <label class="input-label">Gemini API Key</label>
+        <input class="input-field" id="key-input-gemini" type="password" placeholder="AIza...">
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
+        在 <span style="color:var(--primary)">aistudio.google.com</span> 免费获取 · 每天1500次
+      </p>
+    </div>
     <div id="key-siliconflow" class="key-section" style="display:none">
       <div class="input-group">
         <label class="input-label">API Key</label>
@@ -505,6 +521,8 @@ async function doOCR() {
     let text = '';
     if (model === 'claude') {
       text = await callClaude(apiKey, base64, mediaType);
+    } else if (model === 'gemini') {
+      text = await callGemini(apiKey, base64, mediaType);
     } else {
       text = await callOpenAICompat(apiKey, base64, mediaType, model);
     }
@@ -675,6 +693,33 @@ function getActiveKey() {
   return localStorage.getItem('apiKey_' + model) || '';
 }
 
+async function callGemini(apiKey, base64, mediaType) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { inline_data: { mime_type: mediaType, data: base64 } },
+          { text: OCR_PROMPT }
+        ]}]
+      })
+    });
+  } catch {
+    showError('网络连接失败：无法连接到 Google\n请检查 VPN 是否已开启');
+    throw new Error('__handled__');
+  }
+  if (res.status === 400 || res.status === 403) {
+    showError('Gemini API Key 无效，请检查密钥是否正确');
+    throw new Error('__handled__');
+  }
+  await checkHttpError(res, 'Gemini');
+  const json = await res.json();
+  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
 async function callClaude(apiKey, base64, mediaType) {
   let res;
   try {
@@ -768,7 +813,7 @@ function showToast(msg) {
 window.addEventListener('load', () => {
   const model = localStorage.getItem('model') || 'claude';
   selectModel(model);
-  ['claude', 'qwen', 'openai', 'siliconflow'].forEach(m => {
+  ['claude', 'qwen', 'openai', 'siliconflow', 'gemini'].forEach(m => {
     const k = localStorage.getItem('apiKey_' + m);
     if (k) document.getElementById('key-input-' + m).value = k;
   });
