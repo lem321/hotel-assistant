@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a56db">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>酒店订单助手</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1a56db;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #059669;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "HarmonyOS Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 16px 20px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 18px; font-weight: 600; }
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 56px;
+      z-index: 99;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .page { display: none; padding: 16px; }
+    .page.active { display: block; }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      background: #f9fafb;
+      transition: background 0.2s;
+    }
+    .upload-area:active { background: #eff6ff; border-color: var(--primary); }
+    .upload-icon { font-size: 40px; margin-bottom: 8px; }
+    .upload-area p { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+    .upload-area .hint { font-size: 12px; color: #9ca3af; }
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    #preview-container { margin-top: 12px; display: none; }
+    #preview-img { width: 100%; border-radius: 8px; max-height: 220px; object-fit: contain; border: 1px solid var(--border); }
+    .loading { display: none; text-align: center; padding: 24px; color: var(--muted); }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #result-section { display: none; }
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      gap: 12px;
+    }
+    .field-row:last-child { border-bottom: none; }
+    .field-label { color: var(--muted); font-size: 13px; min-width: 70px; flex-shrink: 0; }
+    .field-value { font-weight: 500; text-align: right; word-break: break-all; }
+    .field-value.price { color: var(--primary); font-size: 16px; font-weight: 700; }
+    .email-box {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 120px;
+    }
+    .copy-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 13px;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .copy-btn:active { opacity: 0.85; }
+    .input-group { margin-bottom: 14px; }
+    .input-label { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block; color: var(--muted); }
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+      color: var(--text);
+      -webkit-appearance: none;
+    }
+    .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .save-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .save-btn:active { opacity: 0.85; }
+    #toast {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(17,24,39,0.9);
+      color: white;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 13px;
+      z-index: 9999;
+      transition: transform 0.28s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    .no-key-banner {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #92400e;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .lang-btns { display: flex; gap: 8px; margin-bottom: 10px; }
+    .lang-btn {
+      flex: 1;
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+    }
+    .lang-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .about-info { font-size: 13px; color: var(--muted); line-height: 2; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:22px">🏨</span>
+  <h1>酒店订单助手</h1>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('ocr')">📷 识别订单</div>
+  <div class="tab" onclick="switchTab('email')">✉️ 邮件模板</div>
+  <div class="tab" onclick="switchTab('settings')">⚙️ 设置</div>
+</nav>
+
+<!-- OCR Tab -->
+<div id="tab-ocr" class="page active">
+  <div id="no-key-banner" class="no-key-banner">
+    ⚠️ 请先在「设置」中填入 API Key
+  </div>
+  <div class="card">
+    <div class="card-title">上传订单截图</div>
+    <div class="upload-area" onclick="triggerUpload('camera')">
+      <div class="upload-icon">📄</div>
+      <p>点击拍照或上传图片</p>
+      <p class="hint">支持 JPG · PNG · WebP · 最大 10MB</p>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFile(this)">
+    <div id="preview-container">
+      <img id="preview-img" src="" alt="预览">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="triggerUpload('gallery')">🖼️ 相册</button>
+      <button class="btn btn-secondary" onclick="triggerUpload('camera')">📷 拍照</button>
+      <button class="btn btn-primary" id="ocr-btn" onclick="doOCR()" disabled>🔍 识别</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>AI 正在识别中，请稍候…</p>
+  </div>
+
+  <div id="result-section">
+    <div class="card" id="result-fields"></div>
+    <div class="card">
+      <div class="card-title">生成邮件</div>
+      <div class="lang-btns">
+        <button class="lang-btn active" id="btn-en" onclick="setLang('en')">🇬🇧 英文</button>
+        <button class="lang-btn" id="btn-zh" onclick="setLang('zh')">🇨🇳 中文</button>
+      </div>
+      <div class="email-box" id="email-content"></div>
+      <button class="copy-btn" onclick="copyText('email-content')">📋 复制邮件</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email Tab -->
+<div id="tab-email" class="page">
+  <div class="card">
+    <div class="card-title">手动填写订单信息</div>
+    <div class="input-group">
+      <label class="input-label">客人姓名</label>
+      <input class="input-field" id="m-guest" placeholder="Guest Name" type="text">
+    </div>
+    <div class="input-group">
+      <label class="input-label">入住日期</label>
+      <input class="input-field" id="m-checkin" type="date">
+    </div>
+    <div class="input-group">
+      <label class="input-label">退房日期</label>
+      <input class="input-field" id="m-checkout" type="date">
+    </div>
+    <div class="input-group">
+      <label class="input-label">房型</label>
+      <input class="input-field" id="m-room" placeholder="Deluxe Room" type="text">
+    </div>
+    <div class="input-group">
+      <label class="input-label">订单号</label>
+      <input class="input-field" id="m-id" placeholder="Booking ID" type="text">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="genManual('en')">英文邮件</button>
+      <button class="btn btn-secondary" onclick="genManual('zh')">中文邮件</button>
+    </div>
+  </div>
+  <div class="card" id="manual-result" style="display:none">
+    <div class="card-title">邮件内容</div>
+    <div class="email-box" id="manual-email"></div>
+    <button class="copy-btn" onclick="copyText('manual-email')">📋 复制邮件</button>
+  </div>
+</div>
+
+<!-- Settings Tab -->
+<div id="tab-settings" class="page">
+  <div class="card">
+    <div class="card-title">API 设置</div>
+    <div class="input-group">
+      <label class="input-label">Anthropic API Key</label>
+      <input class="input-field" id="api-key-input" type="password" placeholder="sk-ant-api03-...">
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      密钥只保存在本机，不经过任何服务器
+    </p>
+    <button class="save-btn" onclick="saveKey()">💾 保存</button>
+  </div>
+  <div class="card">
+    <div class="card-title">关于</div>
+    <div class="about-info">
+      <div>🏨 酒店订单助手 v1.1</div>
+      <div>📱 无服务器 · 纯前端运行</div>
+      <div>🤖 由 Claude AI 提供识别能力</div>
+      <div style="margin-top:8px;color:#9ca3af">即将支持：EBK价格对比 · 汇率换算</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const OCR_PROMPT = `你是酒店订单信息提取专家。从图片中提取关键信息，只返回如下JSON，不要任何说明：
+{
+  "platform": "预订平台(Booking.com/Expedia/Agoda/携程等)",
+  "guest_name": "客人姓名",
+  "checkin_date": "入住日期YYYY-MM-DD",
+  "checkout_date": "退房日期YYYY-MM-DD",
+  "nights": "晚数",
+  "room_type": "房型",
+  "guests": "人数",
+  "booking_id": "订单号",
+  "total_price": "总价数字",
+  "currency": "货币USD/CNY/EUR等",
+  "special_requests": "特殊要求或null",
+  "contact": "联系方式或null",
+  "notes": "其他备注或null"
+}
+识别不到的字段填null。`;
+
+let currentFile = null;
+let currentData = null;
+let currentLang = 'en';
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function triggerUpload(mode) {
+  const input = document.getElementById('file-input');
+  if (mode === 'camera') {
+    input.setAttribute('capture', 'environment');
+  } else {
+    input.removeAttribute('capture');
+  }
+  input.value = '';
+  input.click();
+}
+
+function handleFile(input) {
+  if (!input.files || !input.files[0]) return;
+  currentFile = input.files[0];
+  if (currentFile.size > 10 * 1024 * 1024) {
+    showToast('图片超过10MB，请压缩后重试');
+    return;
+  }
+  const url = URL.createObjectURL(currentFile);
+  document.getElementById('preview-img').src = url;
+  document.getElementById('preview-container').style.display = 'block';
+  document.getElementById('ocr-btn').disabled = false;
+  document.getElementById('result-section').style.display = 'none';
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function doOCR() {
+  const apiKey = localStorage.getItem('apiKey') || '';
+  if (!apiKey) {
+    showToast('请先在设置中填入 API Key');
+    switchTab('settings');
+    return;
+  }
+  if (!currentFile) return;
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('ocr-btn').disabled = true;
+
+  try {
+    const base64 = await fileToBase64(currentFile);
+    const mediaType = currentFile.type || 'image/jpeg';
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: 2048,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: OCR_PROMPT }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    let text = '';
+    for (const block of json.content) {
+      if (block.type === 'text') { text = block.text; break; }
+    }
+
+    let clean = text.trim();
+    if (clean.startsWith('```')) {
+      clean = clean.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '');
+    }
+
+    currentData = JSON.parse(clean);
+    renderResult(currentData);
+    setLang(currentLang);
+    document.getElementById('result-section').style.display = 'block';
+    showToast('识别成功！');
+  } catch (e) {
+    showToast('失败：' + e.message);
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('ocr-btn').disabled = false;
+  }
+}
+
+const FIELD_LABELS = {
+  platform: '预订平台', guest_name: '客人姓名',
+  checkin_date: '入住日期', checkout_date: '退房日期',
+  nights: '晚数', room_type: '房型', guests: '人数',
+  booking_id: '订单号', total_price: '总价',
+  currency: '货币', special_requests: '特殊要求',
+  contact: '联系方式', notes: '备注'
+};
+
+function renderResult(d) {
+  let html = '<div class="card-title">识别结果</div>';
+  for (const [k, label] of Object.entries(FIELD_LABELS)) {
+    const v = d[k];
+    if (!v || v === 'null') continue;
+    const display = k === 'total_price' ? `${v} ${d.currency || ''}` : v;
+    const cls = k === 'total_price' ? 'field-value price' : 'field-value';
+    html += `<div class="field-row"><span class="field-label">${label}</span><span class="${cls}">${display}</span></div>`;
+  }
+  document.getElementById('result-fields').innerHTML = html;
+
+  if (d.guest_name) document.getElementById('m-guest').value = d.guest_name;
+  if (d.checkin_date) document.getElementById('m-checkin').value = d.checkin_date;
+  if (d.checkout_date) document.getElementById('m-checkout').value = d.checkout_date;
+  if (d.room_type) document.getElementById('m-room').value = d.room_type;
+  if (d.booking_id) document.getElementById('m-id').value = d.booking_id;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+  if (!currentData) return;
+  document.getElementById('email-content').textContent =
+    lang === 'en' ? buildEn(currentData) : buildZh(currentData);
+}
+
+function buildEn(d) {
+  const g = d.guest_name || 'Guest';
+  const ci = d.checkin_date || '[Check-in]';
+  const co = d.checkout_date || '[Check-out]';
+  const r = d.room_type || '[Room Type]';
+  const n = d.nights ? `\nNights: ${d.nights}` : '';
+  const id = d.booking_id ? `\nBooking ID: ${d.booking_id}` : '';
+  const p = d.total_price ? `\nTotal: ${d.total_price} ${d.currency || ''}` : '';
+  const sr = (d.special_requests && d.special_requests !== 'null')
+    ? `\n\nNote: Regarding your special request "${d.special_requests}", we will do our best to arrange it.`
+    : '';
+  return `Dear ${g},
+
+Thank you for choosing us! We are pleased to confirm your reservation.
+
+Check-in:  ${ci}
+Check-out: ${co}${n}
+Room: ${r}${id}${p}${sr}
+
+We look forward to welcoming you. Please feel free to contact us if you have any questions.
+
+Best regards,
+Hotel Team`;
+}
+
+function buildZh(d) {
+  const g = d.guest_name || '尊敬的客人';
+  const ci = d.checkin_date || '[入住日期]';
+  const co = d.checkout_date || '[退房日期]';
+  const r = d.room_type || '[房型]';
+  const n = d.nights ? `\n入住晚数：${d.nights}` : '';
+  const id = d.booking_id ? `\n订单号：${d.booking_id}` : '';
+  const p = d.total_price ? `\n总价：${d.total_price} ${d.currency || ''}` : '';
+  const sr = (d.special_requests && d.special_requests !== 'null')
+    ? `\n\n关于您的特殊要求"${d.special_requests}"，我们将尽力为您安排。`
+    : '';
+  return `尊敬的 ${g}，
+
+感谢您选择我们酒店！您的预订已确认。
+
+入住日期：${ci}
+退房日期：${co}${n}
+房型：${r}${id}${p}${sr}
+
+期待您的光临，如有任何疑问请随时联系我们。
+
+此致
+酒店前台`;
+}
+
+function genManual(lang) {
+  const d = {
+    guest_name: document.getElementById('m-guest').value,
+    checkin_date: document.getElementById('m-checkin').value,
+    checkout_date: document.getElementById('m-checkout').value,
+    room_type: document.getElementById('m-room').value,
+    booking_id: document.getElementById('m-id').value,
+  };
+  document.getElementById('manual-email').textContent = lang === 'en' ? buildEn(d) : buildZh(d);
+  document.getElementById('manual-result').style.display = 'block';
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('已复制！')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('已复制！'); }
+  catch { showToast('请长按手动复制'); }
+  document.body.removeChild(ta);
+}
+
+function saveKey() {
+  const v = document.getElementById('api-key-input').value.trim();
+  if (!v) { showToast('请输入 API Key'); return; }
+  localStorage.setItem('apiKey', v);
+  document.getElementById('no-key-banner').style.display = 'none';
+  showToast('已保存');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+window.addEventListener('load', () => {
+  const key = localStorage.getItem('apiKey');
+  if (key) {
+    document.getElementById('api-key-input').value = key;
+  } else {
+    document.getElementById('no-key-banner').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
