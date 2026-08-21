@@ -245,6 +245,7 @@
   <div id="no-key-banner" class="no-key-banner">
     ⚠️ 请先在「设置」中填入 API Key
   </div>
+  <div id="error-box" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px;margin-bottom:12px;font-size:13px;color:#991b1b;line-height:1.7;white-space:pre-wrap"></div>
   <div class="card">
     <div class="card-title">上传订单截图</div>
     <div class="upload-area" onclick="triggerUpload('camera')">
@@ -425,30 +426,50 @@ async function doOCR() {
     const base64 = await fileToBase64(currentFile);
     const mediaType = currentFile.type || 'image/jpeg';
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-8',
-        max_tokens: 2048,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-            { type: 'text', text: OCR_PROMPT }
-          ]
-        }]
-      })
-    });
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-8',
+          max_tokens: 2048,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+              { type: 'text', text: OCR_PROMPT }
+            ]
+          }]
+        })
+      });
+    } catch (netErr) {
+      showError('网络连接失败：无法连接到 Anthropic 服务器\n可能原因：① 未开 VPN ② VPN 未生效 ③ 网络不稳定');
+      return;
+    }
 
+    if (res.status === 401) {
+      showError('API Key 错误：密钥无效或已过期\n请到设置页面重新填入正确的 API Key');
+      return;
+    }
+    if (res.status === 429) {
+      showError('请求过于频繁，请稍等几秒后重试');
+      return;
+    }
+    if (res.status === 400) {
+      const err = await res.json().catch(() => ({}));
+      showError('请求错误：' + (err.error?.message || '图片格式可能不支持'));
+      return;
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
+      showError('API 错误 ' + res.status + '：' + (err.error?.message || '未知错误'));
+      return;
     }
 
     const json = await res.json();
@@ -468,7 +489,7 @@ async function doOCR() {
     document.getElementById('result-section').style.display = 'block';
     showToast('识别成功！');
   } catch (e) {
-    showToast('失败：' + e.message);
+    showError('发生错误：' + e.message);
   } finally {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('ocr-btn').disabled = false;
@@ -599,6 +620,15 @@ function saveKey() {
   localStorage.setItem('apiKey', v);
   document.getElementById('no-key-banner').style.display = 'none';
   showToast('已保存');
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('ocr-btn').disabled = false;
+  const box = document.getElementById('error-box');
+  box.textContent = msg;
+  box.style.display = 'block';
+  setTimeout(() => box.style.display = 'none', 8000);
 }
 
 let toastTimer;
