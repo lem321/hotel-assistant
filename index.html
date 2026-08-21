@@ -334,13 +334,19 @@
 <!-- Settings Tab -->
 <div id="tab-settings" class="page">
   <div class="card">
-    <div class="card-title">硅基流动 API Key</div>
+    <div class="card-title">硅基流动设置</div>
     <div class="input-group">
+      <label class="input-label">API Key</label>
       <input class="input-field" id="api-key-input" type="password" placeholder="sk-...">
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
-      在 <span style="color:var(--primary)">siliconflow.cn</span> 注册免费获取 · 国内直连无需VPN · 密钥只保存在本机
-    </p>
+    <div class="input-group">
+      <label class="input-label">视觉模型名称</label>
+      <input class="input-field" id="model-input" type="text" placeholder="例：Qwen/Qwen2.5-VL-7B-Instruct">
+      <p style="font-size:11px;color:var(--muted);margin-top:6px">
+        在 <span style="color:var(--primary)">siliconflow.cn/models</span> 搜索「VL」查看可用模型
+      </p>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">密钥只保存在本机，不经过任何服务器</p>
     <button class="save-btn" onclick="saveKey()">💾 保存</button>
   </div>
   <div class="card">
@@ -455,7 +461,7 @@ async function callSiliconFlow(apiKey, base64, mediaType) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'Qwen/Qwen2.5-VL-7B-Instruct',
+        model: localStorage.getItem('modelName') || 'Qwen/Qwen2.5-VL-7B-Instruct',
         max_tokens: 2048,
         messages: [{ role: 'user', content: [
           { type: 'image_url', image_url: { url: 'data:' + mediaType + ';base64,' + base64 } },
@@ -571,8 +577,11 @@ function fallbackCopy(text) {
 
 function saveKey() {
   const v = document.getElementById('api-key-input').value.trim();
+  const m = document.getElementById('model-input').value.trim();
   if (!v) { showToast('请输入 API Key'); return; }
+  if (!m) { showToast('请输入模型名称'); return; }
   localStorage.setItem('apiKey', v);
+  localStorage.setItem('modelName', m);
   document.getElementById('no-key-banner').style.display = 'none';
   showToast('已保存');
 }
@@ -597,7 +606,9 @@ function showToast(msg) {
 
 window.addEventListener('load', () => {
   const key = localStorage.getItem('apiKey');
+  const model = localStorage.getItem('modelName');
   if (key) document.getElementById('api-key-input').value = key;
+  if (model) document.getElementById('model-input').value = model;
   else document.getElementById('no-key-banner').style.display = 'block';
 });
 </script>
