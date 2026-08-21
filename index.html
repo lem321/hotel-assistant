@@ -255,7 +255,7 @@
 <!-- OCR Tab -->
 <div id="tab-ocr" class="page active">
   <div id="no-key-banner" class="no-key-banner">
-    ⚠️ 请先在「设置」中填入 Gemini API Key
+    ⚠️ 请先在「设置」中填入硅基流动 API Key
   </div>
   <div id="error-box" class="error-box"></div>
   <div class="card">
@@ -334,21 +334,21 @@
 <!-- Settings Tab -->
 <div id="tab-settings" class="page">
   <div class="card">
-    <div class="card-title">Gemini API Key</div>
+    <div class="card-title">硅基流动 API Key</div>
     <div class="input-group">
-      <input class="input-field" id="api-key-input" type="password" placeholder="AIza...">
+      <input class="input-field" id="api-key-input" type="password" placeholder="sk-...">
     </div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
-      在 <span style="color:var(--primary)">aistudio.google.com</span> 免费获取 · 每天1500次 · 密钥只保存在本机
+      在 <span style="color:var(--primary)">siliconflow.cn</span> 注册免费获取 · 国内直连无需VPN · 密钥只保存在本机
     </p>
     <button class="save-btn" onclick="saveKey()">💾 保存</button>
   </div>
   <div class="card">
     <div class="card-title">关于</div>
     <div class="about-info">
-      <div>🏨 酒店订单助手 v1.3</div>
-      <div>📱 无服务器 · 纯前端运行</div>
-      <div>🤖 Google Gemini 驱动 · 每天免费1500次</div>
+      <div>🏨 酒店订单助手 v1.4</div>
+      <div>📱 无服务器 · 纯前端运行 · 国内直连</div>
+      <div>🤖 硅基流动 Qwen2-VL 驱动</div>
       <div style="margin-top:8px;color:#9ca3af">即将支持：EBK价格对比 · 汇率换算</div>
     </div>
   </div>
@@ -427,7 +427,7 @@ async function doOCR() {
   try {
     const base64 = await fileToBase64(currentFile);
     const mediaType = currentFile.type || 'image/jpeg';
-    const text = await callGemini(apiKey, base64, mediaType);
+    const text = await callSiliconFlow(apiKey, base64, mediaType);
 
     let clean = text.trim();
     if (clean.startsWith('```')) clean = clean.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '');
@@ -445,35 +445,39 @@ async function doOCR() {
   }
 }
 
-async function callGemini(apiKey, base64, mediaType) {
+async function callSiliconFlow(apiKey, base64, mediaType) {
   let res;
   try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+    res = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        contents: [{ parts: [
-          { inline_data: { mime_type: mediaType, data: base64 } },
-          { text: OCR_PROMPT }
+        model: 'Qwen/Qwen2-VL-72B-Instruct',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: [
+          { type: 'image_url', image_url: { url: 'data:' + mediaType + ';base64,' + base64 } },
+          { type: 'text', text: OCR_PROMPT }
         ]}]
       })
     });
   } catch {
-    showError('网络连接失败，无法连接到 Google\n请检查 VPN 是否已开启');
+    showError('网络连接失败，无法连接到硅基流动\n请检查网络连接');
     throw new Error('__handled__');
   }
-  if (res.status === 400 || res.status === 403) {
-    const err = await res.json().catch(() => ({}));
-    showError('Gemini 错误：' + (err.error?.message || 'API Key 无效，请重新检查'));
+  if (res.status === 401) {
+    showError('API Key 无效，请重新检查密钥是否正确');
     throw new Error('__handled__');
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    showError('Gemini 错误 ' + res.status + '：' + (err.error?.message || '未知错误'));
+    showError('请求错误 ' + res.status + '：' + (err.message || err.error?.message || '未知错误'));
     throw new Error('__handled__');
   }
   const json = await res.json();
-  return json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return json.choices?.[0]?.message?.content || '';
 }
 
 const FIELD_LABELS = {
