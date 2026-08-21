@@ -224,6 +224,20 @@
       text-align: center;
     }
     .lang-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .model-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .model-option.active { border-color: var(--primary); background: #eff6ff; }
+    .model-option input[type=radio] { display: none; }
+    .model-name { font-size: 14px; font-weight: 600; }
+    .model-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .about-info { font-size: 13px; color: var(--muted); line-height: 2; }
   </style>
 </head>
@@ -322,22 +336,62 @@
 <!-- Settings Tab -->
 <div id="tab-settings" class="page">
   <div class="card">
-    <div class="card-title">API 设置</div>
-    <div class="input-group">
-      <label class="input-label">Anthropic API Key</label>
-      <input class="input-field" id="api-key-input" type="password" placeholder="sk-ant-api03-...">
+    <div class="card-title">选择 AI 模型</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <label class="model-option" onclick="selectModel('claude')">
+        <input type="radio" name="model" value="claude" id="m-claude">
+        <div class="model-info">
+          <div class="model-name">Claude (Anthropic)</div>
+          <div class="model-desc">识别能力最强 · 需要 VPN</div>
+        </div>
+      </label>
+      <label class="model-option" onclick="selectModel('qwen')">
+        <input type="radio" name="model" value="qwen" id="m-qwen">
+        <div class="model-info">
+          <div class="model-name">通义千问 Qwen-VL</div>
+          <div class="model-desc">国内直连 · 无需 VPN · 阿里云</div>
+        </div>
+      </label>
+      <label class="model-option" onclick="selectModel('openai')">
+        <input type="radio" name="model" value="openai" id="m-openai">
+        <div class="model-info">
+          <div class="model-name">OpenAI GPT-4o</div>
+          <div class="model-desc">需要 VPN · openai.com</div>
+        </div>
+      </label>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
-      密钥只保存在本机，不经过任何服务器
-    </p>
+
+    <div id="key-claude" class="key-section">
+      <div class="input-group">
+        <label class="input-label">Anthropic API Key</label>
+        <input class="input-field" id="key-input-claude" type="password" placeholder="sk-ant-api03-...">
+      </div>
+    </div>
+    <div id="key-qwen" class="key-section" style="display:none">
+      <div class="input-group">
+        <label class="input-label">阿里云 DashScope API Key</label>
+        <input class="input-field" id="key-input-qwen" type="password" placeholder="sk-...">
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
+        在 <span style="color:var(--primary)">dashscope.aliyuncs.com</span> 申请，国内无需 VPN
+      </p>
+    </div>
+    <div id="key-openai" class="key-section" style="display:none">
+      <div class="input-group">
+        <label class="input-label">OpenAI API Key</label>
+        <input class="input-field" id="key-input-openai" type="password" placeholder="sk-...">
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">密钥只保存在本机，不经过任何服务器</p>
     <button class="save-btn" onclick="saveKey()">💾 保存</button>
   </div>
   <div class="card">
     <div class="card-title">关于</div>
     <div class="about-info">
-      <div>🏨 酒店订单助手 v1.1</div>
+      <div>🏨 酒店订单助手 v1.2</div>
       <div>📱 无服务器 · 纯前端运行</div>
-      <div>🤖 由 Claude AI 提供识别能力</div>
+      <div>🤖 支持 Claude / 通义千问 / OpenAI</div>
       <div style="margin-top:8px;color:#9ca3af">即将支持：EBK价格对比 · 汇率换算</div>
     </div>
   </div>
@@ -410,7 +464,7 @@ function fileToBase64(file) {
 }
 
 async function doOCR() {
-  const apiKey = localStorage.getItem('apiKey') || '';
+  const apiKey = getActiveKey();
   if (!apiKey) {
     showToast('请先在设置中填入 API Key');
     switchTab('settings');
@@ -425,57 +479,13 @@ async function doOCR() {
   try {
     const base64 = await fileToBase64(currentFile);
     const mediaType = currentFile.type || 'image/jpeg';
+    const model = localStorage.getItem('model') || 'claude';
 
-    let res;
-    try {
-      res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-8',
-          max_tokens: 2048,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-              { type: 'text', text: OCR_PROMPT }
-            ]
-          }]
-        })
-      });
-    } catch (netErr) {
-      showError('网络连接失败：无法连接到 Anthropic 服务器\n可能原因：① 未开 VPN ② VPN 未生效 ③ 网络不稳定');
-      return;
-    }
-
-    if (res.status === 401) {
-      showError('API Key 错误：密钥无效或已过期\n请到设置页面重新填入正确的 API Key');
-      return;
-    }
-    if (res.status === 429) {
-      showError('请求过于频繁，请稍等几秒后重试');
-      return;
-    }
-    if (res.status === 400) {
-      const err = await res.json().catch(() => ({}));
-      showError('请求错误：' + (err.error?.message || '图片格式可能不支持'));
-      return;
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      showError('API 错误 ' + res.status + '：' + (err.error?.message || '未知错误'));
-      return;
-    }
-
-    const json = await res.json();
     let text = '';
-    for (const block of json.content) {
-      if (block.type === 'text') { text = block.text; break; }
+    if (model === 'claude') {
+      text = await callClaude(apiKey, base64, mediaType);
+    } else {
+      text = await callOpenAICompat(apiKey, base64, mediaType, model);
     }
 
     let clean = text.trim();
@@ -489,7 +499,7 @@ async function doOCR() {
     document.getElementById('result-section').style.display = 'block';
     showToast('识别成功！');
   } catch (e) {
-    showError('发生错误：' + e.message);
+    if (e.message !== '__handled__') showError('发生错误：' + e.message);
   } finally {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('ocr-btn').disabled = false;
@@ -615,11 +625,95 @@ function fallbackCopy(text) {
 }
 
 function saveKey() {
-  const v = document.getElementById('api-key-input').value.trim();
+  const model = localStorage.getItem('model') || 'claude';
+  const v = document.getElementById('key-input-' + model).value.trim();
   if (!v) { showToast('请输入 API Key'); return; }
-  localStorage.setItem('apiKey', v);
+  localStorage.setItem('apiKey_' + model, v);
   document.getElementById('no-key-banner').style.display = 'none';
   showToast('已保存');
+}
+
+function selectModel(name) {
+  localStorage.setItem('model', name);
+  document.querySelectorAll('.model-option').forEach(el => el.classList.remove('active'));
+  document.getElementById('m-' + name).closest('.model-option').classList.add('active');
+  document.querySelectorAll('.key-section').forEach(el => el.style.display = 'none');
+  document.getElementById('key-' + name).style.display = 'block';
+}
+
+function getActiveKey() {
+  const model = localStorage.getItem('model') || 'claude';
+  return localStorage.getItem('apiKey_' + model) || '';
+}
+
+async function callClaude(apiKey, base64, mediaType) {
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: OCR_PROMPT }
+        ]}]
+      })
+    });
+  } catch {
+    showError('网络连接失败：无法连接到 Anthropic\n请检查 VPN 是否已开启');
+    throw new Error('__handled__');
+  }
+  await checkHttpError(res, 'Anthropic');
+  const json = await res.json();
+  for (const b of json.content) { if (b.type === 'text') return b.text; }
+  return '';
+}
+
+async function callOpenAICompat(apiKey, base64, mediaType, model) {
+  const configs = {
+    qwen:   { url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', model: 'qwen-vl-max' },
+    openai: { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' }
+  };
+  const cfg = configs[model];
+  let res;
+  try {
+    res = await fetch(cfg.url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: 2048,
+        messages: [{ role: 'user', content: [
+          { type: 'image_url', image_url: { url: 'data:' + mediaType + ';base64,' + base64 } },
+          { type: 'text', text: OCR_PROMPT }
+        ]}]
+      })
+    });
+  } catch {
+    const name = model === 'qwen' ? '通义千问' : 'OpenAI';
+    showError('网络连接失败：无法连接到 ' + name + '\n' + (model === 'openai' ? '请检查 VPN 是否已开启' : '请检查网络连接'));
+    throw new Error('__handled__');
+  }
+  await checkHttpError(res, model === 'qwen' ? '通义千问' : 'OpenAI');
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content || '';
+}
+
+async function checkHttpError(res, name) {
+  if (res.ok) return;
+  const err = await res.json().catch(() => ({}));
+  const msg = err.error?.message || err.message || '未知错误';
+  if (res.status === 401) showError(name + ' API Key 无效或已过期\n请到设置页面重新填入正确的密钥');
+  else if (res.status === 429) showError('请求过于频繁，请稍等几秒后重试');
+  else showError(name + ' 错误 ' + res.status + '：' + msg);
+  throw new Error('__handled__');
 }
 
 function showError(msg) {
@@ -641,12 +735,13 @@ function showToast(msg) {
 }
 
 window.addEventListener('load', () => {
-  const key = localStorage.getItem('apiKey');
-  if (key) {
-    document.getElementById('api-key-input').value = key;
-  } else {
-    document.getElementById('no-key-banner').style.display = 'block';
-  }
+  const model = localStorage.getItem('model') || 'claude';
+  selectModel(model);
+  ['claude', 'qwen', 'openai'].forEach(m => {
+    const k = localStorage.getItem('apiKey_' + m);
+    if (k) document.getElementById('key-input-' + m).value = k;
+  });
+  if (!getActiveKey()) document.getElementById('no-key-banner').style.display = 'block';
 });
 </script>
 </body>
